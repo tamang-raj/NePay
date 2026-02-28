@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Transaction History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+    <h3>Hybrid Wallet</h3>
+    <div>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/transfer">Transfer</a>
+        <a href="/logout">Logout</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="card">
+        <h2>Your Transactions</h2>
+
+        <table>
+            <tr>
+                <th>TX ID</th>
+                <th>Time</th>
+                <th>Sender</th>
+                <th>Receiver</th>
+                <th>Amount</th>
+                <th>Type</th>
+                <th>Status</th>
+            </tr>
+
+            {% for tx in records %}
+            <tr>
+                <td>{{ tx[0] }}</td>
+                <td>{{ tx[1] }}</td>
+                <td>{{ tx[2] }}</td>
+                <td>{{ tx[3] }}</td>
+                <td>{{ tx[4] }}</td>
+                <td>{{ tx[5] }}</td>
+                <td>{{ tx[6] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    </div>
+</div>
+
+</body>
+</html>

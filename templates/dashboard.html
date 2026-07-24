@@ -1,67 +1,173 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dashboard - Hybrid Wallet</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
 
-<nav>
-    <h3>Hybrid Wallet</h3>
-    <div>
-        <a href="/transfer">Transfer</a>
-        <a href="/history">History</a>
-        <a href="/logout">Logout</a>
-    </div>
-</nav>
-
-<div class="container">
-
-    <div class="balance-section">
-        <div class="balance-card online">
-            <h3>Online Balance</h3>
-            <p>Rs. {{ online }}</p>
-        </div>
-
-        <div class="balance-card offline">
-            <h3>Offline Balance</h3>
-            <p>Rs. {{ offline }}</p>
-        </div>
-    </div>
-
-    <div class="actions">
-
-        <h3>Deposit</h3>
-        <form method="POST" action="/deposit">
-            <input type="number" step="0.01" name="amount" placeholder="Amount" required>
-            <button type="submit">Deposit</button>
-        </form>
-
-        <h3>Withdraw</h3>
-        <form method="POST" action="/withdraw">
-            <input type="number" step="0.01" name="amount" placeholder="Amount" required>
-            <button type="submit">Withdraw</button>
-        </form>
-
-        <h3>Move Online → Offline</h3>
-        <form method="POST" action="/move_offline">
-            <input type="number" step="0.01" name="amount" placeholder="Amount" required>
-            <button type="submit">Move to Offline</button>
-        </form>
-
-        <h3>Offline Transfer</h3>
-        <form method="POST" action="/offline_transfer">
-            <input type="text" name="receiver" placeholder="Receiver Username" required>
-            <input type="number" step="0.01" name="amount" placeholder="Amount" required>
-            <button type="submit">Send Offline</button>
-        </form>
-
-        <h3>Sync Offline Transactions</h3>
-        <a href="/sync" class="sync-btn">Sync Now</a>
-
-    </div>
+{% block content %}
+<!-- Server Status -->
+<div class="server-status-bar {{ 'online' if server_available else 'offline' }}">
+  <div class="status-dot"></div>
+  <span class="status-text">
+    {% if server_available %}Server Online — All systems operational{% else %}⚠️  Server Overloaded — Use Offline Wallet{% endif %}
+  </span>
+  <span style="margin-left:auto; font-size:0.72rem; opacity:0.7">Last checked: just now</span>
 </div>
 
-</body>
-</html>
+<!-- Offline peak banner -->
+{% if not server_available %}
+<div class="offline-banner" id="offline-recommend-banner">
+  <div class="offline-banner-icon">📵</div>
+  <div>
+    <div class="offline-banner-title">Peak Hour Detected</div>
+    <div class="offline-banner-text">Server traffic is high. Use your Offline Wallet for instant payments — they'll sync automatically when the server recovers.</div>
+  </div>
+  <a href="{{ url_for('transfer') }}" class="btn btn-offline btn-sm" style="margin-left:auto; flex-shrink:0">Use Offline →</a>
+</div>
+{% endif %}
+
+<!-- Page Header -->
+<div class="page-header">
+  <div>
+    <div class="page-title">Good day, {{ username }} 👋</div>
+    <div class="page-subtitle">Here's your wallet overview</div>
+  </div>
+  <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap">
+    {% if pending_count > 0 %}
+    <button class="btn btn-outline btn-sm" id="sync-btn">
+      🔄 Sync {{ pending_count }} Offline Tx
+    </button>
+    {% endif %}
+    <a href="{{ url_for('wallet') }}" class="btn btn-primary btn-sm">+ Deposit</a>
+  </div>
+</div>
+
+<!-- Balance Cards -->
+<div class="balance-grid">
+  <div class="balance-card online">
+    <div class="balance-label">
+      <div class="balance-label-dot"></div>
+      Online Wallet
+    </div>
+    <div class="balance-amount" id="online-balance-amount">NPR {{ "%.2f"|format(online_balance) }}</div>
+    <div class="balance-currency">NEPALI RUPEE</div>
+    <div class="balance-meta">🏦 Connected to server · Real-time</div>
+  </div>
+  <div class="balance-card offline">
+    <div class="balance-label">
+      <div class="balance-label-dot"></div>
+      Offline Wallet
+    </div>
+    <div class="balance-amount" id="offline-balance-amount">NPR {{ "%.2f"|format(offline_balance) }}</div>
+    <div class="balance-currency">NEPALI RUPEE</div>
+    <div class="balance-meta">📲 Works without internet · Like cash</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="offline-progress"
+           style="width: {{ [(offline_balance/5000)*100, 100]|min }}%"></div>
+    </div>
+    <div class="balance-meta" style="margin-top:0.3rem">
+      Limit: NPR {{ "%.0f"|format(offline_balance) }} / 5,000
+    </div>
+  </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon">💳</div>
+    <div class="stat-value" style="color:var(--teal)">NPR {{ "%.0f"|format(online_balance + offline_balance) }}</div>
+    <div class="stat-label">Total Balance</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📤</div>
+    <div class="stat-value" style="color:var(--crimson-lt)">
+      {{ recent_txs | selectattr('sender','equalto', username) | list | length }}
+    </div>
+    <div class="stat-label">Sent (recent)</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📥</div>
+    <div class="stat-value" style="color:var(--success)">
+      {{ recent_txs | selectattr('receiver','equalto', username) | list | length }}
+    </div>
+    <div class="stat-label">Received (recent)</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⏳</div>
+    <div class="stat-value" style="color:var(--offline)">{{ pending_count }}</div>
+    <div class="stat-label">Pending Sync</div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid-2" style="margin-bottom:1.5rem">
+  <div class="card">
+    <div class="card-title">Quick Actions</div>
+    <div style="display:flex; flex-direction:column; gap:0.5rem">
+      <a href="{{ url_for('wallet') }}" class="btn btn-teal">💰 Deposit Money</a>
+      <a href="{{ url_for('wallet') }}#load-offline" class="btn btn-offline">📲 Load Offline Wallet</a>
+      <a href="{{ url_for('transfer') }}" class="btn btn-primary">↔️ Send Money</a>
+    </div>
+  </div>
+
+  <!-- Recent Transactions -->
+  <div class="card">
+    <div class="card-title" style="display:flex; justify-content:space-between; align-items:center">
+      Recent Activity
+      <a href="{{ url_for('history') }}" style="font-size:0.75rem; color:var(--teal); text-decoration:none; text-transform:none; font-weight:500">View all →</a>
+    </div>
+    {% if recent_txs %}
+    <div class="tx-list">
+      {% for tx in recent_txs[:4] %}
+      <div class="tx-item" data-type="{{ tx.type }}">
+        <div class="tx-icon {{ tx.type }}">
+          {% if tx.type == 'deposit' %}💵
+          {% elif tx.type == 'offline' %}📵
+          {% elif tx.type == 'online_to_offline' %}📲
+          {% else %}↔️{% endif %}
+        </div>
+        <div class="tx-details">
+          <div class="tx-desc">
+            {% if tx.sender == username %}Sent to {{ tx.receiver }}
+            {% elif tx.receiver == username %}Received from {{ tx.sender }}
+            {% elif tx.type == 'deposit' %}Deposited
+            {% else %}{{ tx.type }}{% endif %}
+          </div>
+          <div class="tx-meta">{{ tx.timestamp }} · <span class="tx-badge badge-{{ tx.status }}">{{ tx.status }}</span></div>
+        </div>
+        <div class="tx-amount {{ 'sent' if tx.sender == username and tx.type != 'deposit' else 'recv' }}">
+          {{ '−' if tx.sender == username and tx.type not in ['deposit','online_to_offline'] else '+' }}NPR {{ "%.2f"|format(tx.amount) }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">🕒</div>
+      <div class="empty-state-text">No transactions yet. Deposit to get started!</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- How it works info box -->
+<div class="card" style="border-color:rgba(26,188,156,0.15)">
+  <div class="card-title">💡 How NepaPay Works</div>
+  <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:1rem">
+    <div style="text-align:center; padding:1rem">
+      <div style="font-size:1.75rem; margin-bottom:0.5rem">🏦</div>
+      <div style="font-size:0.85rem; font-weight:600; margin-bottom:0.3rem">Online Wallet</div>
+      <div style="font-size:0.78rem; color:var(--text-muted)">Works like a bank account. Requires internet. Instant transfers between users.</div>
+    </div>
+    <div style="text-align:center; padding:1rem; position:relative">
+      <div style="position:absolute; top:50%; left:0; transform:translateY(-50%); color:var(--text-dim); font-size:1.2rem">→</div>
+      <div style="position:absolute; top:50%; right:0; transform:translateY(-50%); color:var(--text-dim); font-size:1.2rem">→</div>
+      <div style="font-size:1.75rem; margin-bottom:0.5rem">🔄</div>
+      <div style="font-size:0.85rem; font-weight:600; margin-bottom:0.3rem">Load &amp; Sync</div>
+      <div style="font-size:0.78rem; color:var(--text-muted)">Move funds to offline wallet when server is healthy. Sync back when online.</div>
+    </div>
+    <div style="text-align:center; padding:1rem">
+      <div style="font-size:1.75rem; margin-bottom:0.5rem">📲</div>
+      <div style="font-size:0.85rem; font-weight:600; margin-bottom:0.3rem">Offline Wallet</div>
+      <div style="font-size:0.78rem; color:var(--text-muted)">Works like cash. Pay anyone offline. Transactions queue and sync when server is back.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,50 +1,105 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Transaction History</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
 
-<nav>
-    <h3>Hybrid Wallet</h3>
-    <div>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/transfer">Transfer</a>
-        <a href="/logout">Logout</a>
-    </div>
-</nav>
-
-<div class="container">
-    <div class="card">
-        <h2>Your Transactions</h2>
-
-        <table>
-            <tr>
-                <th>TX ID</th>
-                <th>Time</th>
-                <th>Sender</th>
-                <th>Receiver</th>
-                <th>Amount</th>
-                <th>Type</th>
-                <th>Status</th>
-            </tr>
-
-            {% for tx in records %}
-            <tr>
-                <td>{{ tx[0] }}</td>
-                <td>{{ tx[1] }}</td>
-                <td>{{ tx[2] }}</td>
-                <td>{{ tx[3] }}</td>
-                <td>{{ tx[4] }}</td>
-                <td>{{ tx[5] }}</td>
-                <td>{{ tx[6] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-
-    </div>
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">🕒 Transaction History</div>
+    <div class="page-subtitle">All your online and offline transactions</div>
+  </div>
+  {% if offline_transactions %}
+  <button class="btn btn-offline btn-sm" id="sync-btn">
+    🔄 Sync {{ offline_transactions|length }} Pending
+  </button>
+  {% endif %}
 </div>
 
-</body>
-</html>
+<!-- Pending Offline Transactions -->
+{% if offline_transactions %}
+<div class="card" style="margin-bottom:1.5rem; border-color:rgba(155,89,182,0.25)">
+  <div class="card-title" style="color:#C39BD3">⏳ Pending Offline Transactions ({{ offline_transactions|length }})</div>
+  <div class="alert alert-warning" style="margin-bottom:1rem">
+    ⚠️ These transactions were made offline and are waiting to sync to the server.
+  </div>
+  <div class="tx-list">
+    {% for tx in offline_transactions %}
+    <div class="tx-item">
+      <div class="tx-icon offline">📵</div>
+      <div class="tx-details">
+        <div class="tx-desc">Offline → {{ tx.receiver }}{% if tx.note %} · {{ tx.note }}{% endif %}</div>
+        <div class="tx-meta">{{ tx.timestamp }} · <span class="monospace" style="font-size:0.7rem">{{ tx.tx_id }}</span></div>
+      </div>
+      <div class="tx-amount sent">−NPR {{ "%.2f"|format(tx.amount) }}</div>
+      <span class="tx-badge badge-pending">PENDING</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Completed Transactions -->
+<div class="card">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:0.75rem">
+    <div class="card-title" style="margin-bottom:0">All Transactions</div>
+    <div class="history-filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="deposit">Deposits</button>
+      <button class="filter-btn" data-filter="online">Online</button>
+      <button class="filter-btn" data-filter="offline">Offline</button>
+      <button class="filter-btn" data-filter="online_to_offline">Wallet Loads</button>
+    </div>
+  </div>
+
+  {% if transactions %}
+  <div class="tx-list">
+    {% for tx in transactions %}
+    <div class="tx-item" data-type="{{ tx.type }}">
+      <div class="tx-icon {{ tx.type }}">
+        {% if tx.type == 'deposit' %}💵
+        {% elif tx.type == 'offline' %}📵
+        {% elif tx.type == 'online_to_offline' %}📲
+        {% elif tx.sender == session.username %}📤
+        {% else %}📥{% endif %}
+      </div>
+      <div class="tx-details">
+        <div class="tx-desc">
+          {% if tx.type == 'deposit' %}
+            Deposit
+          {% elif tx.type == 'online_to_offline' %}
+            Loaded Offline Wallet
+          {% elif tx.sender == session.username %}
+            Sent to <strong>{{ tx.receiver }}</strong>
+          {% else %}
+            Received from <strong>{{ tx.sender }}</strong>
+          {% endif %}
+          {% if tx.note %} · <span style="color:var(--text-muted); font-size:0.8rem">{{ tx.note }}</span>{% endif %}
+        </div>
+        <div class="tx-meta">
+          {{ tx.timestamp }}
+          &nbsp;·&nbsp;
+          <span class="monospace" style="font-size:0.7rem">{{ tx.tx_id }}</span>
+          &nbsp;·&nbsp;
+          <span class="tx-badge badge-{{ tx.status }}">{{ tx.status }}</span>
+          &nbsp;·&nbsp;
+          <span class="tx-badge badge-{{ 'offline' if tx.type in ['offline'] else 'completed' }}" style="opacity:0.7">
+            {{ 'Offline' if tx.type in ['offline'] else 'Online' }}
+          </span>
+        </div>
+      </div>
+      <div class="tx-amount {{ 'sent' if tx.sender == session.username and tx.type not in ['deposit'] else 'recv' }}">
+        {% if tx.type == 'deposit' %}+
+        {% elif tx.sender == session.username %}−
+        {% else %}+{% endif %}NPR {{ "%.2f"|format(tx.amount) }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">🕒</div>
+    <div class="empty-state-text">No transactions found.<br>Make a deposit or transfer to get started.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

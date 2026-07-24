@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">🔧 Admin Dashboard</div>
+    <div class="page-subtitle">System overview and sync monitoring</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:0.75rem">
+    <div class="server-status-bar {{ 'online' if server_available else 'offline' }}" style="margin:0">
+      <div class="status-dot"></div>
+      <span class="status-text" style="font-size:0.78rem">
+        {{ 'Server Online' if server_available else 'Server Overloaded' }}
+      </span>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 Refresh</button>
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="stats-grid" style="margin-bottom:1.5rem">
+  <div class="stat-card">
+    <div class="stat-icon">👤</div>
+    <div class="stat-value" style="color:var(--teal)">{{ users|length }}</div>
+    <div class="stat-label">Total Users</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📋</div>
+    <div class="stat-value" style="color:var(--crimson-lt)">{{ total_tx_count }}</div>
+    <div class="stat-label">Total Transactions</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⏳</div>
+    <div class="stat-value" style="color:var(--offline)">{{ pending_offline|length }}</div>
+    <div class="stat-label">Pending Offline Sync</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💰</div>
+    <div class="stat-value" style="color:var(--gold)">
+      NPR {{ "%.0f"|format(users|sum(attribute='online_balance') + users|sum(attribute='offline_balance')) }}
+    </div>
+    <div class="stat-label">Total System Balance</div>
+  </div>
+</div>
+
+<!-- Users Table -->
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-title">👥 Registered Users</div>
+  {% if users %}
+  <div style="overflow-x:auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Online Balance</th>
+          <th>Offline Balance</th>
+          <th>Total Balance</th>
+          <th>Joined</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td style="color:var(--text); font-weight:600">{{ user.username }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.phone }}</td>
+          <td style="color:var(--teal)">NPR {{ "%.2f"|format(user.online_balance) }}</td>
+          <td style="color:#C39BD3">NPR {{ "%.2f"|format(user.offline_balance) }}</td>
+          <td style="color:var(--gold); font-weight:700">NPR {{ "%.2f"|format(user.online_balance + user.offline_balance) }}</td>
+          <td style="font-size:0.78rem">{{ user.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">👤</div>
+    <div class="empty-state-text">No users registered yet</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Pending Offline Transactions -->
+<div class="card">
+  <div class="card-title" style="color:#C39BD3">⏳ Pending Offline Sync Queue ({{ pending_offline|length }})</div>
+  {% if pending_offline %}
+  <div class="alert alert-warning" style="margin-bottom:1rem">
+    ⚠️ {{ pending_offline|length }} offline transaction(s) awaiting sync. Users must visit the Transfer page and click Sync.
+  </div>
+  <div style="overflow-x:auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Transaction ID</th>
+          <th>Timestamp</th>
+          <th>Sender</th>
+          <th>Receiver</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in pending_offline %}
+        <tr>
+          <td class="monospace" style="font-size:0.75rem">{{ tx.tx_id }}</td>
+          <td style="font-size:0.78rem">{{ tx.timestamp }}</td>
+          <td style="color:var(--crimson-lt)">{{ tx.sender }}</td>
+          <td style="color:var(--teal)">{{ tx.receiver }}</td>
+          <td style="color:var(--gold); font-weight:700">NPR {{ "%.2f"|format(tx.amount) }}</td>
+          <td><span class="tx-badge badge-pending">PENDING</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">✅</div>
+    <div class="empty-state-text">All offline transactions have been synced</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- File Info -->
+<div class="card" style="margin-top:1.5rem; border-color:rgba(26,188,156,0.1)">
+  <div class="card-title">📁 Data Storage (Plain .txt files)</div>
+  <div class="grid-3" style="gap:0.75rem">
+    {% for fname, label, color in [('users.txt','User Accounts','var(--teal)'), ('balances.txt','Balances','var(--gold)'), ('transactions.txt','Transactions','var(--crimson-lt)'), ('offline_transactions.txt','Offline TXs','#C39BD3')] %}
+    <div style="padding:0.875rem; background:var(--bg-input); border-radius:var(--radius)">
+      <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim); margin-bottom:0.3rem">{{ label }}</div>
+      <div style="font-family:var(--mono); font-size:0.8rem; color:{{ color }}">data/{{ fname }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  <div style="margin-top:0.75rem; font-size:0.78rem; color:var(--text-dim)">
+    💡 All data is stored as pipe-delimited plain text. No database required.
+    Format: <span class="monospace" style="color:var(--teal)">field1|field2|field3|...</span>
+  </div>
+</div>
+{% endblock %}

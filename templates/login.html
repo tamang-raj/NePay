@@ -1,24 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Hybrid Wallet - Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — NepaPay</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+<div class="toast-container" id="toast-container"></div>
 
-<div class="container">
-    <div class="card">
-        <h2>Login</h2>
-        <form method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Login</button>
-        </form>
+<div class="auth-wrapper">
+  <div class="auth-bg"></div>
 
-        <p>Don't have an account?</p>
-        <a href="/register" class="link-btn">Register</a>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🇳🇵</div>
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-subtitle">Login to your NepaPay wallet</div>
     </div>
+
+    {% if error %}
+    <div class="alert alert-error">❌ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/login" id="login-form">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-input" type="text" id="username" name="username"
+               placeholder="your_username" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-input" type="password" id="password" name="password"
+               placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary btn-block" type="submit" id="login-btn">
+        🔐 Sign In
+      </button>
+    </form>
+
+    <div class="auth-link">
+      Don't have an account? <a href="/register">Register here</a>
+    </div>
+
+    <!-- Demo credentials hint -->
+    <div style="margin-top:1.5rem; padding:1rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06)">
+      <div style="font-size:0.72rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.5rem">🧪 Demo Account</div>
+      <div style="font-size:0.82rem; color:var(--text-muted)">Register a new account to get started. Demo users start with NPR 0.00 balance.</div>
+    </div>
+  </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+  document.getElementById("login-form").addEventListener("submit", function(e) {
+    const btn = document.getElementById("login-btn");
+    btn.innerHTML = '<span class="spinner"></span> Signing in...';
+    btn.disabled = true;
+  });
+</script>
 </body>
 </html>

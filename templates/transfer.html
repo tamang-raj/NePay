@@ -1,30 +1,175 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Online Transfer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Transfer{% endblock %}
 
-<nav>
-    <h3>Hybrid Wallet</h3>
-    <div>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/history">History</a>
-        <a href="/logout">Logout</a>
-    </div>
-</nav>
-
-<div class="container">
-    <div class="card">
-        <h2>Online Transfer</h2>
-        <form method="POST">
-            <input type="text" name="receiver" placeholder="Receiver Username" required>
-            <input type="number" step="0.01" name="amount" placeholder="Amount" required>
-            <button type="submit">Send Online</button>
-        </form>
-    </div>
+{% block content %}
+<!-- Server Status -->
+<div class="server-status-bar {{ 'online' if server_available else 'offline' }}">
+  <div class="status-dot"></div>
+  <span class="status-text">
+    {% if server_available %}Server Online{% else %}⚠️  Peak Hour — Server Overloaded. Use Offline Transfer below.{% endif %}
+  </span>
 </div>
 
-</body>
-</html>
+<div class="page-header">
+  <div>
+    <div class="page-title">↔️ Transfer</div>
+    <div class="page-subtitle">Send money online or offline</div>
+  </div>
+</div>
+
+<!-- Balance Summary -->
+<div style="display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap">
+  <div style="background:var(--bg-card); border:1px solid rgba(26,188,156,0.15); border-radius:var(--radius); padding:0.875rem 1.25rem; display:flex; align-items:center; gap:0.75rem">
+    <span style="font-size:1rem">🌐</span>
+    <div>
+      <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em">Online Balance</div>
+      <div style="font-family:var(--mono); font-weight:700; color:var(--teal)" id="online-balance-amount">NPR {{ "%.2f"|format(online_balance) }}</div>
+    </div>
+  </div>
+  <div style="background:var(--bg-card); border:1px solid rgba(155,89,182,0.15); border-radius:var(--radius); padding:0.875rem 1.25rem; display:flex; align-items:center; gap:0.75rem">
+    <span style="font-size:1rem">📲</span>
+    <div>
+      <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em">Offline Balance</div>
+      <div style="font-family:var(--mono); font-weight:700; color:#C39BD3" id="offline-balance-amount">NPR {{ "%.2f"|format(offline_balance) }}</div>
+    </div>
+  </div>
+
+  <!-- Offline sim toggle -->
+  <div style="margin-left:auto; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:0.875rem 1.25rem; display:flex; align-items:center; gap:0.75rem">
+    <span style="font-size:0.8rem; color:var(--text-muted)">🧪 Simulate Offline</span>
+    <label style="position:relative; display:inline-block; width:40px; height:22px; cursor:pointer">
+      <input type="checkbox" id="offline-sim-toggle" style="opacity:0; width:0; height:0">
+      <span style="position:absolute; inset:0; background:var(--bg-input); border-radius:22px; border:1px solid var(--border); transition:0.3s;"></span>
+      <span id="sim-knob" style="position:absolute; top:3px; left:3px; width:14px; height:14px; background:var(--slate); border-radius:50%; transition:0.3s;"></span>
+    </label>
+  </div>
+</div>
+
+<!-- Transfer Panels -->
+<div class="transfer-panels">
+
+  <!-- Online Transfer Panel -->
+  <div class="transfer-panel online-panel" id="online-transfer-section">
+    <div class="transfer-panel-header">
+      <div class="transfer-panel-icon">🌐</div>
+      <div>
+        <div class="transfer-panel-title">Online Transfer</div>
+        <div class="transfer-panel-sub">Requires internet &amp; server availability</div>
+      </div>
+      {% if not server_available %}
+      <span class="tx-badge badge-offline" style="margin-left:auto">UNAVAILABLE</span>
+      {% else %}
+      <span class="tx-badge badge-completed" style="margin-left:auto">ONLINE</span>
+      {% endif %}
+    </div>
+
+    {% if not server_available %}
+    <div class="alert alert-error">
+      ❌ Server overloaded during peak hours. Use Offline Transfer →
+    </div>
+    {% endif %}
+
+    <form id="online-transfer-form">
+      <div class="form-group">
+        <label class="form-label">Recipient Username</label>
+        <input class="form-input" type="text" name="receiver"
+               placeholder="username" required autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount (NPR)</label>
+        <input class="form-input amount-input" type="number" name="amount"
+               placeholder="0.00" min="1" step="0.01" data-preview="online-amount-preview" required>
+        <div class="form-hint" id="online-amount-preview" style="color:var(--teal); font-weight:600"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note (optional)</label>
+        <input class="form-input" type="text" name="note" placeholder="For rent, food...">
+      </div>
+      <div id="online-result"></div>
+      <button class="btn btn-teal btn-block" type="submit" id="online-transfer-btn"
+              {% if not server_available %}disabled{% endif %}>
+        🌐 Send Online
+      </button>
+    </form>
+  </div>
+
+  <!-- Offline Transfer Panel -->
+  <div class="transfer-panel offline-panel">
+    <div class="transfer-panel-header">
+      <div class="transfer-panel-icon">📵</div>
+      <div>
+        <div class="transfer-panel-title" style="color:#C39BD3">Offline Transfer</div>
+        <div class="transfer-panel-sub">Works without internet. Syncs later.</div>
+      </div>
+      <span class="tx-badge badge-offline" style="margin-left:auto">OFFLINE</span>
+    </div>
+
+    <div class="offline-banner" style="margin-bottom:1.25rem; padding:0.875rem">
+      <div style="font-size:1.2rem">📵</div>
+      <div>
+        <div style="font-size:0.82rem; font-weight:600; color:#C39BD3">Works Even When Server is Down</div>
+        <div style="font-size:0.75rem; color:var(--text-muted)">Deducted from offline wallet instantly. Synced to recipient when server recovers.</div>
+      </div>
+    </div>
+
+    <form id="offline-transfer-form">
+      <div class="form-group">
+        <label class="form-label">Recipient Username</label>
+        <input class="form-input" type="text" name="receiver"
+               placeholder="username" required autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount (NPR)</label>
+        <input class="form-input amount-input" type="number" name="amount"
+               placeholder="0.00" min="1" step="0.01" data-preview="offline-amount-preview" required>
+        <div class="form-hint" id="offline-amount-preview" style="color:#C39BD3; font-weight:600"></div>
+        <div class="form-hint">Available offline: NPR <span id="offline-available">{{ "%.2f"|format(offline_balance) }}</span></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note</label>
+        <input class="form-input" type="text" name="note" placeholder="Offline payment...">
+      </div>
+      <div id="offline-result"></div>
+      <button class="btn btn-offline btn-block" type="submit">
+        📵 Send Offline
+      </button>
+    </form>
+
+    <hr class="divider">
+    <!-- Sync button -->
+    <button class="btn btn-outline btn-block btn-sm" id="sync-btn">
+      🔄 Sync Pending Transactions
+    </button>
+    <div style="font-size:0.72rem; color:var(--text-dim); text-align:center; margin-top:0.5rem">
+      Requires server to be available
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Custom toggle styling
+  const toggle = document.getElementById('offline-sim-toggle');
+  const knob = document.getElementById('sim-knob');
+  if (toggle && knob) {
+    toggle.addEventListener('change', () => {
+      if (toggle.checked) {
+        knob.style.transform = 'translateX(18px)';
+        knob.style.background = 'var(--offline)';
+      } else {
+        knob.style.transform = 'translateX(0)';
+        knob.style.background = 'var(--slate)';
+      }
+    });
+  }
+
+  // Update offline available live
+  setInterval(() => {
+    fetch('/api/balance').then(r=>r.json()).then(d => {
+      const el = document.getElementById('offline-available');
+      if (el) el.textContent = parseFloat(d.offline_balance).toLocaleString('en-IN',{minimumFractionDigits:2});
+    });
+  }, 4000);
+</script>
+{% endblock %}

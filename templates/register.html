@@ -1,24 +1,99 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Hybrid Wallet - Register</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — NepaPay</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+<div class="toast-container" id="toast-container"></div>
 
-<div class="container">
-    <div class="card">
-        <h2>Create Account</h2>
-        <form method="POST">
-            <input type="text" name="username" placeholder="Choose Username" required>
-            <input type="password" name="password" placeholder="Choose Password" required>
-            <button type="submit">Register</button>
-        </form>
+<div class="auth-wrapper">
+  <div class="auth-bg"></div>
 
-        <p>Already have an account?</p>
-        <a href="/login" class="link-btn">Login</a>
+  <div class="auth-card" style="max-width:480px">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🇳🇵</div>
+      <div class="auth-title">Create Account</div>
+      <div class="auth-subtitle">Join NepaPay — your hybrid digital wallet</div>
     </div>
+
+    {% if error %}
+    <div class="alert alert-error">❌ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/register" id="reg-form">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input" type="text" name="username"
+               placeholder="choose a username" required minlength="3"
+               autocomplete="username">
+        <div class="form-hint">Minimum 3 characters, lowercase</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" name="email"
+                 placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-input" type="tel" name="phone"
+                 placeholder="98XXXXXXXX" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" name="password"
+               placeholder="••••••••" required minlength="6"
+               autocomplete="new-password" id="pw1">
+        <div class="form-hint">Minimum 6 characters</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <input class="form-input" type="password" name="confirm_password"
+               placeholder="••••••••" required id="pw2">
+      </div>
+
+      <div id="pw-match-alert" class="alert alert-error" style="display:none">
+        ❌ Passwords do not match
+      </div>
+
+      <button class="btn btn-primary btn-block" type="submit" id="reg-btn">
+        🚀 Create Account
+      </button>
+    </form>
+
+    <div class="auth-link">
+      Already have an account? <a href="/login">Sign in</a>
+    </div>
+  </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+  const pw1 = document.getElementById("pw1");
+  const pw2 = document.getElementById("pw2");
+  const alert = document.getElementById("pw-match-alert");
+
+  pw2.addEventListener("input", () => {
+    alert.style.display = pw1.value !== pw2.value ? "flex" : "none";
+  });
+
+  document.getElementById("reg-form").addEventListener("submit", function(e) {
+    if (pw1.value !== pw2.value) {
+      e.preventDefault();
+      alert.style.display = "flex";
+      return;
+    }
+    const btn = document.getElementById("reg-btn");
+    btn.innerHTML = '<span class="spinner"></span> Creating account...';
+    btn.disabled = true;
+  });
+</script>
 </body>
 </html>

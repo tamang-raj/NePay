@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}NepaPay{% endblock %} — Hybrid Wallet</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23C0392B'/><text y='24' x='4' font-size='22'>💳</text></svg>">
+</head>
+<body>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Mobile menu toggle -->
+<button class="menu-toggle" id="menu-toggle" aria-label="Menu">☰</button>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">🇳🇵</div>
+      <div>
+        <div class="logo-text">Nepa<span>Pay</span></div>
+        <div class="logo-tagline">Hybrid Digital Wallet</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+      <span class="nav-icon">📊</span> Dashboard
+    </a>
+    <a href="{{ url_for('wallet') }}" class="nav-link {% if request.endpoint == 'wallet' %}active{% endif %}">
+      <span class="nav-icon">💰</span> Wallet
+    </a>
+    <a href="{{ url_for('transfer') }}" class="nav-link {% if request.endpoint == 'transfer' %}active{% endif %}">
+      <span class="nav-icon">↔️</span> Transfer
+    </a>
+    <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">
+      <span class="nav-icon">🕒</span> History
+      {% if pending_count is defined and pending_count > 0 %}
+        <span class="nav-badge" id="pending-badge">{{ pending_count }}</span>
+      {% else %}
+        <span class="nav-badge" id="pending-badge" style="display:none">0</span>
+      {% endif %}
+    </a>
+    <div class="nav-section-label">System</div>
+    <a href="{{ url_for('admin') }}" class="nav-link {% if request.endpoint == 'admin' %}active{% endif %}">
+      <span class="nav-icon">🔧</span> Admin
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-mini">
+      <div class="user-avatar">{{ session.username[0].upper() if session.username else '?' }}</div>
+      <div class="user-info">
+        <div class="user-name">{{ session.username }}</div>
+        <div class="user-status">● Active</div>
+      </div>
+      <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout">🚪</a>
+    </div>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

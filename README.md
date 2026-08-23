@@ -1,4 +1,4 @@
-# NepaPay — Hybrid Digital Payment System 🇳🇵
+# NePay — Hybrid Digital Payment System 🇳🇵
 
 A prototype of a hybrid online/offline digital wallet designed to solve Nepal's peak-hour payment failures.
 
@@ -7,7 +7,7 @@ A prototype of a hybrid online/offline digital wallet designed to solve Nepal's 
 ## 📁 Project Structure
 
 ```
-nepalpay/
+nepay/
 ├── app.py                    ← Flask backend (all routes + logic)
 ├── requirements.txt
 ├── data/
